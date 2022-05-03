@@ -2,8 +2,8 @@
 
 pragma solidity 0.6.12;
 
-import "./openzeppelin/token/ERC20/ERC20.sol";
-import "./openzeppelin/access/Ownable.sol";
+import "./openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./openzeppelin/contracts/access/Ownable.sol";
 
 // WARNING: There is a known vuln contained within this contract related to vote delegation, 
 // it's NOT recommmended to use this in production.  
@@ -242,7 +242,6 @@ contract SushiToken is ERC20("SushiToken", "SUSHI"), Ownable {
 
     function getChainId() internal pure returns (uint) {
         uint256 chainId = block.chainid;
-
         return chainId;
     }
 }

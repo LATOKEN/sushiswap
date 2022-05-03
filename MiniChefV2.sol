@@ -3,9 +3,9 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol";
-import "@boringcrypto/boring-solidity/contracts/BoringBatchable.sol";
-import "@boringcrypto/boring-solidity/contracts/BoringOwnable.sol";
+import "./boringcrypto/contracts/libraries/BoringMath.sol";
+import "./boringcrypto/contracts/BoringBatchable.sol";
+import "./boringcrypto/contracts/BoringOwnable.sol";
 import "./libraries/SignedSafeMath.sol";
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
@@ -78,7 +78,7 @@ contract MiniChefV2 is BoringOwnable, BoringBatchable {
     event LogSushiPerSecond(uint256 sushiPerSecond);
 
     /// @param _sushi The SUSHI token contract address.
-    constructor(IERC20 _sushi) public {
+    constructor(IERC20 _sushi) {
         SUSHI = _sushi;
     }
 
@@ -100,7 +100,7 @@ contract MiniChefV2 is BoringOwnable, BoringBatchable {
 
         poolInfo.push(PoolInfo({
             allocPoint: allocPoint.to64(),
-            lastRewardTime: block.timestamp.to64(),
+            lastRewardTime: uint64(block.timestamp),
             accSushiPerShare: 0
         }));
         addedTokens[address(_lpToken)] = true;
@@ -157,7 +157,7 @@ contract MiniChefV2 is BoringOwnable, BoringBatchable {
         uint256 accSushiPerShare = pool.accSushiPerShare;
         uint256 lpSupply = lpToken[_pid].balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
-            uint256 time = block.timestamp.sub(pool.lastRewardTime);
+            uint256 time = block.timestamp - pool.lastRewardTime;
             uint256 sushiReward = time.mul(sushiPerSecond).mul(pool.allocPoint) / totalAllocPoint;
             accSushiPerShare = accSushiPerShare.add(sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply);
         }
@@ -181,11 +181,11 @@ contract MiniChefV2 is BoringOwnable, BoringBatchable {
         if (block.timestamp > pool.lastRewardTime) {
             uint256 lpSupply = lpToken[pid].balanceOf(address(this));
             if (lpSupply > 0) {
-                uint256 time = block.timestamp.sub(pool.lastRewardTime);
+                uint256 time = block.timestamp - pool.lastRewardTime;
                 uint256 sushiReward = time.mul(sushiPerSecond).mul(pool.allocPoint) / totalAllocPoint;
                 pool.accSushiPerShare = pool.accSushiPerShare.add((sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128());
             }
-            pool.lastRewardTime = block.timestamp.to64();
+            pool.lastRewardTime = uint64(block.timestamp);
             poolInfo[pid] = pool;
             emit LogUpdatePool(pid, pool.lastRewardTime, lpSupply, pool.accSushiPerShare);
         }

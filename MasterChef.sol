@@ -2,11 +2,11 @@
 
 pragma solidity 0.6.12;
 
-import "./openzeppelin/token/ERC20/IERC20.sol";
-import "./openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import "./openzeppelin/utils/structs/EnumerableSet.sol";
-import "./openzeppelin/utils/math/SafeMath.sol";
-import "./openzeppelin/access/Ownable.sol";
+import "./openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "./openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./openzeppelin/contracts/access/Ownable.sol";
 import "./SushiToken.sol";
 
 interface IMigratorChef {
@@ -89,7 +89,7 @@ contract MasterChef is Ownable {
         uint256 _sushiPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock
-    ) public {
+    ) {
         sushi = _sushi;
         devaddr = _devaddr;
         sushiPerBlock = _sushiPerBlock;
