@@ -1,0 +1,1 @@
+[{"name":"batch","type":"function","inputs":[{"name":"calls","type":"bytes[]","internalType":"bytes[]"},{"name":"revertOnFail","type":"bool","internalType":"bool"}],"outputs":[],"stateMutability":"payable"}]
