@@ -492,10 +492,7 @@ contract MasterContractManager is BoringOwnable, BoringFactory {
     uint256 private immutable DOMAIN_SEPARATOR_CHAIN_ID;
 
     constructor() public {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
+        uint256 chainId = block.chainid;
         _DOMAIN_SEPARATOR = _calculateDomainSeparator(DOMAIN_SEPARATOR_CHAIN_ID = chainId);
     }
 
@@ -505,10 +502,7 @@ contract MasterContractManager is BoringOwnable, BoringFactory {
 
     // solhint-disable-next-line func-name-mixedcase
     function DOMAIN_SEPARATOR() public view returns (bytes32) {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
+        uint256 chainId = block.chainid;
         return chainId == DOMAIN_SEPARATOR_CHAIN_ID ? _DOMAIN_SEPARATOR : _calculateDomainSeparator(chainId);
     }
 
@@ -550,7 +544,7 @@ contract MasterContractManager is BoringOwnable, BoringFactory {
         require(masterContract != address(0), "MasterCMgr: masterC not set"); // Important for security
 
         // If no signature is provided, the fallback is executed
-        if (r == 0 && s == 0 && v == 0) {
+        if (r == bytes32(0) && s == bytes32(0) && v == 0) {
             require(user == msg.sender, "MasterCMgr: user not sender");
             require(masterContractOf[user] == address(0), "MasterCMgr: user is clone");
             require(whitelistedMasterContracts[masterContract], "MasterCMgr: not whitelisted");
@@ -604,12 +598,11 @@ contract BaseBoringBatchable {
     function _getRevertMsg(bytes memory _returnData) internal pure returns (string memory) {
         // If the _res length is less than 68, then the transaction failed silently (without a revert message)
         if (_returnData.length < 68) return "Transaction reverted silently";
-
-        assembly {
-            // Slice the sighash.
-            _returnData := add(_returnData, 0x04)
+        bytes memory slice = new bytes(5);
+        for (uint i = 0; i <= 4; i++){ 
+            slice[i] = bytes(_returnData)[i - 1];
         }
-        return abi.decode(_returnData, (string)); // All that remains is the revert string
+        return abi.decode(slice, (string)); // All that remains is the revert string
     }
 
     /// @notice Allows batched call to self (this contract).
@@ -703,7 +696,7 @@ contract BentoBoxV1 is MasterContractManager, BoringBatchable {
     // V2: Private to save gas, to verify it's correct, check the constructor arguments
     IERC20 private immutable wethToken;
 
-    IERC20 private constant USE_ETHEREUM = IERC20(0);
+    IERC20 private constant USE_ETHEREUM = IERC20(address(0));
     uint256 private constant FLASH_LOAN_FEE = 50; // 0.05%
     uint256 private constant FLASH_LOAN_FEE_PRECISION = 1e5;
     uint256 private constant STRATEGY_DELAY = 2 weeks;
@@ -1074,7 +1067,7 @@ contract BentoBoxV1 is MasterContractManager, BoringBatchable {
             strategy[token] = pending;
             data.strategyStartDate = 0;
             data.balance = 0;
-            pendingStrategy[token] = IStrategy(0);
+            pendingStrategy[token] = IStrategy(address(0));
             emit LogStrategySet(token, newStrategy);
         }
         strategyData[token] = data;

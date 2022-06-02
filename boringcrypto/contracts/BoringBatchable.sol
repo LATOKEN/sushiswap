@@ -17,12 +17,10 @@ contract BaseBoringBatchable {
     function _getRevertMsg(bytes memory _returnData) internal pure returns (string memory) {
         // If the _res length is less than 68, then the transaction failed silently (without a revert message)
         if (_returnData.length < 68) return "Transaction reverted silently";
-
         bytes memory slice = new bytes(5);
         for (uint i = 0; i <= 4; i++){ 
             slice[i] = bytes(_returnData)[i - 1];
         }
-        
         return abi.decode(slice, (string)); // All that remains is the revert string
     }
 
