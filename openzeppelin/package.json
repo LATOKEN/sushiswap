@@ -1,5 +1,5 @@
 {
-  "name": "@openzeppelin/contracts",
+  "name": "./openzeppelin/contracts",
   "description": "Secure Smart Contract library for Solidity",
   "version": "4.4.0",
   "files": [

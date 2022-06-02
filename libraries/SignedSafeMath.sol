@@ -3,7 +3,7 @@
 pragma solidity 0.6.12;
 
 library SignedSafeMath {
-    int256 constant private _INT256_MIN = -2**255;
+    int256 constant private _INT256_MIN = type(int256).min;
 
     /**
      * @dev Returns the multiplication of two signed integers, reverting on

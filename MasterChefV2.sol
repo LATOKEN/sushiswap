@@ -3,9 +3,9 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol";
-import "@boringcrypto/boring-solidity/contracts/BoringBatchable.sol";
-import "@boringcrypto/boring-solidity/contracts/BoringOwnable.sol";
+import "./boringcrypto/contracts/libraries/BoringMath.sol";
+import "./boringcrypto/contracts/BoringBatchable.sol";
+import "./boringcrypto/contracts/BoringOwnable.sol";
 import "./libraries/SignedSafeMath.sol";
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
@@ -80,7 +80,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     /// @param _MASTER_CHEF The SushiSwap MCV1 contract address.
     /// @param _sushi The SUSHI token contract address.
     /// @param _MASTER_PID The pool ID of the dummy token on the base MCV1 contract.
-    constructor(IMasterChef _MASTER_CHEF, IERC20 _sushi, uint256 _MASTER_PID) public {
+    constructor(IMasterChef _MASTER_CHEF, IERC20 _sushi, uint256 _MASTER_PID) {
         MASTER_CHEF = _MASTER_CHEF;
         SUSHI = _sushi;
         MASTER_PID = _MASTER_PID;
@@ -163,7 +163,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         uint256 accSushiPerShare = pool.accSushiPerShare;
         uint256 lpSupply = lpToken[_pid].balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-            uint256 blocks = block.number.sub(pool.lastRewardBlock);
+            uint256 blocks = block.number - pool.lastRewardBlock;
             uint256 sushiReward = blocks.mul(sushiPerBlock()).mul(pool.allocPoint) / totalAllocPoint;
             accSushiPerShare = accSushiPerShare.add(sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply);
         }
@@ -193,11 +193,11 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         if (block.number > pool.lastRewardBlock) {
             uint256 lpSupply = lpToken[pid].balanceOf(address(this));
             if (lpSupply > 0) {
-                uint256 blocks = block.number.sub(pool.lastRewardBlock);
+                uint256 blocks = block.number - pool.lastRewardBlock;
                 uint256 sushiReward = blocks.mul(sushiPerBlock()).mul(pool.allocPoint) / totalAllocPoint;
                 pool.accSushiPerShare = pool.accSushiPerShare.add((sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128());
             }
-            pool.lastRewardBlock = block.number.to64();
+            pool.lastRewardBlock = uint64(block.number);
             poolInfo[pid] = pool;
             emit LogUpdatePool(pid, pool.lastRewardBlock, lpSupply, pool.accSushiPerShare);
         }
