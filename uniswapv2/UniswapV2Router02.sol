@@ -9,19 +9,20 @@ import './interfaces/IUniswapV2Router02.sol';
 import './interfaces/IUniswapV2Factory.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IWETH.sol';
+import "../utils/Proxy.sol";
 
-contract UniswapV2Router02 is IUniswapV2Router02 {
+contract UniswapV2Router02 is Storage, IUniswapV2Router02 {
     using SafeMathUniswap for uint;
 
-    address public immutable override factory;
-    address public immutable override WETH;
+    address public override factory;
+    address public override WETH;
 
     modifier ensure(uint deadline) {
         require(deadline >= block.timestamp, 'UniswapV2Router: EXPIRED');
         _;
     }
 
-    constructor(address _factory, address _WETH) public {
+    function initialize(address _factory, address _WETH) public {
         factory = _factory;
         WETH = _WETH;
     }
@@ -366,23 +367,23 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             pair.swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
-    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
-        uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external virtual override ensure(deadline) {
-        TransferHelper.safeTransferFrom(
-            path[0], msg.sender, UniswapV2Library.pairFor(factory, path[0], path[1]), amountIn
-        );
-        uint balanceBefore = IERC20Uniswap(path[path.length - 1]).balanceOf(to);
-        _swapSupportingFeeOnTransferTokens(path, to);
-        require(
-            IERC20Uniswap(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'
-        );
-    }
+    // function swapExactTokensForTokensSupportingFeeOnTransferTokens(
+    //     uint amountIn,
+    //     uint amountOutMin,
+    //     address[] calldata path,
+    //     address to,
+    //     uint deadline
+    // ) external virtual override ensure(deadline) {
+    //     TransferHelper.safeTransferFrom(
+    //         path[0], msg.sender, UniswapV2Library.pairFor(factory, path[0], path[1]), amountIn
+    //     );
+    //     uint balanceBefore = IERC20Uniswap(path[path.length - 1]).balanceOf(to);
+    //     _swapSupportingFeeOnTransferTokens(path, to);
+    //     require(
+    //         IERC20Uniswap(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
+    //         'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'
+    //     );
+    // }
     function swapExactETHForTokensSupportingFeeOnTransferTokens(
         uint amountOutMin,
         address[] calldata path,
