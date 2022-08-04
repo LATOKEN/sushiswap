@@ -75,6 +75,8 @@ contract MasterChef is Storage, UpgradableOwnable {
     uint256 public totalAllocPoint = 0;
     // The block number when SUSHI mining starts.
     uint256 public startBlock;
+    // Address of the ZapLadex implementation to delegate call
+    address public zapLadex;
     event Add(uint256 indexed pid, address lpToken, address rewardToken, uint256 allocPoint, uint256 rewardPerBlock);
     event Set(uint256 indexed pid, uint256 allocPoint, uint256 rewardPerBlock);
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -258,6 +260,14 @@ contract MasterChef is Storage, UpgradableOwnable {
 
     // Deposit LP tokens to MasterChef for SUSHI allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
+        depositInternal(_pid, _amount, address(0));
+    }
+
+    function depositSingleToken(uint256 _pid, uint256 _amount, address _depositToken) public payable {
+        depositInternal(_pid, _amount, _depositToken);
+    }
+
+    function depositInternal(uint256 _pid, uint256 _amount, address _depositToken) internal {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
@@ -269,11 +279,20 @@ contract MasterChef is Storage, UpgradableOwnable {
             
             safeSushiTransfer(msg.sender, pending, address(pool.rewardToken));
         }
-        pool.lpToken.transferFrom(
-            address(msg.sender),
-            address(this),
-            _amount
-        );
+
+        if (_depositToken == address(0)) {
+            pool.lpToken.transferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
+        } else {
+            (, bytes memory result) = address(zapLadex)
+                .delegatecall(abi.encodeWithSignature("deposit(address,address,uint256)", pool.lpToken, _depositToken, _amount));
+
+            _amount = abi.decode(result, (uint256));
+        }
+
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSushiPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
@@ -281,6 +300,15 @@ contract MasterChef is Storage, UpgradableOwnable {
 
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) public {
+        withdrawInternal(_pid, _amount, address(0));
+    }
+
+    // Withdraw LP tokens from MasterChef and swap them for single token.
+    function withdrawSingleToken(uint256 _pid, uint256 _amount, address _depositToken) public {
+        withdrawInternal(_pid, _amount, _depositToken);
+    }
+
+    function withdrawInternal(uint256 _pid, uint256 _amount, address _depositToken) internal {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
@@ -292,7 +320,14 @@ contract MasterChef is Storage, UpgradableOwnable {
         safeSushiTransfer(msg.sender, pending, address(pool.rewardToken));
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accSushiPerShare).div(1e12);
-        pool.lpToken.transfer(address(msg.sender), _amount);
+        
+        if (_depositToken == address(0)) {
+            pool.lpToken.transfer(msg.sender, _amount);
+        } else {
+            (,) = address(zapLadex)
+                .delegatecall(abi.encodeWithSignature("withdraw(address,address,uint256)", pool.lpToken, _depositToken, _amount));
+        }
+
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -337,5 +372,13 @@ contract MasterChef is Storage, UpgradableOwnable {
     function dev(address _devaddr) public {
         require(msg.sender == devaddr, "dev: wut?");
         devaddr = _devaddr;
+    }
+
+    function setZapLadex(address _zapLadex) public onlyOwner {
+        zapLadex = _zapLadex;
+    }
+
+    function setSushiPerBlock(uint256 _sushiPerBlock) public onlyOwner {
+        sushiPerBlock = _sushiPerBlock;
     }
 }
