@@ -397,6 +397,10 @@ contract MasterChef is Storage, UpgradableOwnable {
         zapLadex = _zapLadex;
     }
 
+    function setSushiPerBlock(uint256 _sushiPerBlock) public onlyOwner {
+        sushiPerBlock = _sushiPerBlock;
+    }
+
     function setFee(uint256 _fee) public onlyOwner {
         fee = _fee;
     }

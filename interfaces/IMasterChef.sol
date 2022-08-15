@@ -35,6 +35,8 @@ interface IMasterChef {
 
     function withdrawSingleToken(uint256 _pid, uint256 _amount, address _depositToken) external;
 
+    function setSushiPerBlock(uint256 _sushiPerBlock) external;
+
     function add(
         uint256 _allocPoint,
         address _lpToken,
