@@ -16,17 +16,4 @@ contract Proxy is Storage {
         proxyOwner = newOwner;
     }
 
-    fallback() external {
-        (, bytes memory result) = address(implementation).delegatecall(
-            msg.data
-        );
-        return2(result);
-    }
-
-    receive() external payable {
-        (, bytes memory result) = address(implementation).delegatecall(
-            msg.data
-        );
-        return2(result);
-    }
 }

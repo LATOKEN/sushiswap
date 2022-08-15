@@ -8,6 +8,11 @@ import "./openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./openzeppelin/contracts/access/UpgradableOwnable.sol";
 import "./utils/Proxy.sol";
 
+interface IWETH is IERC20 {
+    function deposit() external payable;
+    function withdraw(uint256 wad) external;
+}
+
 interface IMigratorChef {
     // Perform LP token migration from legacy UniswapV2 to SushiSwap.
     // Take the current LP token address and return the new LP token address.
@@ -77,6 +82,12 @@ contract MasterChef is Storage, UpgradableOwnable {
     uint256 public startBlock;
     // Address of the ZapLadex implementation to delegate call
     address public zapLadex;
+    // Fee to be paid for deposit/withdrawal
+    uint256 public fee;
+    // Address of wrapped native token
+    address public WETH;
+    // Address of DEX router
+    address public router;
     event Add(uint256 indexed pid, address lpToken, address rewardToken, uint256 allocPoint, uint256 rewardPerBlock);
     event Set(uint256 indexed pid, uint256 allocPoint, uint256 rewardPerBlock);
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -259,7 +270,7 @@ contract MasterChef is Storage, UpgradableOwnable {
     }
 
     // Deposit LP tokens to MasterChef for SUSHI allocation.
-    function deposit(uint256 _pid, uint256 _amount) public {
+    function deposit(uint256 _pid, uint256 _amount) public payable {
         depositInternal(_pid, _amount, address(0));
     }
 
@@ -268,6 +279,10 @@ contract MasterChef is Storage, UpgradableOwnable {
     }
 
     function depositInternal(uint256 _pid, uint256 _amount, address _depositToken) internal {
+        // take fee
+        IWETH(WETH).deposit{value: fee}();
+        
+        // handle deposit
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
@@ -288,7 +303,7 @@ contract MasterChef is Storage, UpgradableOwnable {
             );
         } else {
             (, bytes memory result) = address(zapLadex)
-                .delegatecall(abi.encodeWithSignature("deposit(address,address,uint256)", pool.lpToken, _depositToken, _amount));
+                .delegatecall(abi.encodeWithSignature("deposit(address,address,uint256,address,address)", pool.lpToken, _depositToken, _amount, WETH, router));
 
             _amount = abi.decode(result, (uint256));
         }
@@ -299,16 +314,20 @@ contract MasterChef is Storage, UpgradableOwnable {
     }
 
     // Withdraw LP tokens from MasterChef.
-    function withdraw(uint256 _pid, uint256 _amount) public {
+    function withdraw(uint256 _pid, uint256 _amount) public payable {
         withdrawInternal(_pid, _amount, address(0));
     }
 
     // Withdraw LP tokens from MasterChef and swap them for single token.
-    function withdrawSingleToken(uint256 _pid, uint256 _amount, address _depositToken) public {
+    function withdrawSingleToken(uint256 _pid, uint256 _amount, address _depositToken) public payable {
         withdrawInternal(_pid, _amount, _depositToken);
     }
 
     function withdrawInternal(uint256 _pid, uint256 _amount, address _depositToken) internal {
+        // take fee
+        IWETH(WETH).deposit{value: fee}();
+
+        // handle withdrawal
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
@@ -325,7 +344,7 @@ contract MasterChef is Storage, UpgradableOwnable {
             pool.lpToken.transfer(msg.sender, _amount);
         } else {
             (,) = address(zapLadex)
-                .delegatecall(abi.encodeWithSignature("withdraw(address,address,uint256)", pool.lpToken, _depositToken, _amount));
+                .delegatecall(abi.encodeWithSignature("withdraw(address,address,uint256,address,address)", pool.lpToken, _depositToken, _amount, WETH, router));
         }
 
         emit Withdraw(msg.sender, _pid, _amount);
@@ -376,5 +395,17 @@ contract MasterChef is Storage, UpgradableOwnable {
 
     function setZapLadex(address _zapLadex) public onlyOwner {
         zapLadex = _zapLadex;
+    }
+
+    function setFee(uint256 _fee) public onlyOwner {
+        fee = _fee;
+    }
+
+    function setWETH(address _WETH) public onlyOwner {
+        WETH = _WETH;
+    }
+
+    function setRouter(address _router) public onlyOwner {
+        router = _router;
     }
 }
