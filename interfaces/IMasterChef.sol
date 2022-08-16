@@ -37,6 +37,12 @@ interface IMasterChef {
 
     function setSushiPerBlock(uint256 _sushiPerBlock) external;
 
+    function setFee(uint256 _fee) external;
+
+    function setWETH(address _WETH) external;
+
+    function setRouter(address _router) external;
+
     function add(
         uint256 _allocPoint,
         address _lpToken,
