@@ -15,10 +15,7 @@ interface IWETH is IERC20 {
 contract ZapLadex {
     using SafeMath for uint256;
 
-    address constant WETH = address(0xe66c9c4D573eDD86468F95F0B636719044708F92);
-    address constant router = address(0xeeF9F2eC6cC2eCbeF0003bb5606C81B16cf24943);
-
-    function deposit(IUniswapV2Pair _pair, address _depositToken, uint256 _amount) external payable returns (uint256) {
+    function deposit(IUniswapV2Pair _pair, address _depositToken, uint256 _amount, address WETH, address router) external payable returns (uint256) {
         uint256 beforeLpTokenBalance = IERC20(_pair).balanceOf(address(this));
 
         if (_depositToken == WETH) {
@@ -30,20 +27,22 @@ contract ZapLadex {
                 _amount
             );
         }
-        zap(_pair, _depositToken, _amount, true);
+        zap(_pair, _depositToken, _amount, true, WETH, router);
 
         return IERC20(_pair).balanceOf(address(this)).sub(beforeLpTokenBalance);
     }
 
-    function withdraw(IUniswapV2Pair _pair, address _depositToken, uint256 _amount) external {
-        zap(_pair, _depositToken, _amount, false);
+    function withdraw(IUniswapV2Pair _pair, address _depositToken, uint256 _amount, address WETH, address router) external payable {
+        zap(_pair, _depositToken, _amount, false, WETH, router);
     }
 
     function zap(
         IUniswapV2Pair _pair,
         address _depositToken,
         uint256 _amount,
-        bool _isDeposit
+        bool _isDeposit,
+        address WETH,
+        address router
     ) internal {
         bool isWant0 = _pair.token0() == _depositToken;
         require(isWant0 || _pair.token1() == _depositToken, 'Desired token not present in liquidity pair');
@@ -58,12 +57,12 @@ contract ZapLadex {
             uint256 swapAmountIn;
             (uint256 reserveA, uint256 reserveB,) = _pair.getReserves();
             if (isWant0) {
-                swapAmountIn = getSwapAmount(_amount, reserveA, reserveB);
+                swapAmountIn = getSwapAmount(_amount, reserveA, reserveB, router);
             } else {
-                swapAmountIn = getSwapAmount(_amount, reserveB, reserveA);
+                swapAmountIn = getSwapAmount(_amount, reserveB, reserveA, router);
             }
 
-            uint256[] memory swappedAmounts = swapExactTokensForTokens(swapAmountIn, 1, path, address(this), block.timestamp);
+            uint256[] memory swappedAmounts = swapExactTokensForTokens(swapAmountIn, 1, path, address(this), block.timestamp, router);
 
             IERC20(path[0]).approve(router, _amount.sub(swappedAmounts[0]));
             IERC20(path[1]).approve(router, swappedAmounts[1]);
@@ -77,10 +76,10 @@ contract ZapLadex {
             IERC20(_pair).transfer(address(_pair), _amount);
             (uint256 amount0, uint256 amount1) = _pair.burn(address(this));
 
-            swapExactTokensForTokens(isWant0 ? amount1 : amount0, 1, path, address(this), block.timestamp);
+            swapExactTokensForTokens(isWant0 ? amount1 : amount0, 1, path, address(this), block.timestamp, router);
         }
 
-        returnAsset(_depositToken, IERC20(_depositToken).balanceOf(address(this)).sub(beforeDepositTokenBalance), msg.sender);
+        returnAsset(_depositToken, IERC20(_depositToken).balanceOf(address(this)).sub(beforeDepositTokenBalance), msg.sender, WETH);
     }
 
     function swapExactTokensForTokens(
@@ -88,7 +87,8 @@ contract ZapLadex {
         uint _amountOutMin,
         address[] memory _path,
         address _to,
-        uint _deadline
+        uint _deadline,
+        address router
     ) internal returns (uint[] memory) {
         IERC20(_path[0]).approve(router, _amountIn);
         return IUniswapV2Router(router).swapExactTokensForTokens(_amountIn, _amountOutMin, _path, _to, _deadline);
@@ -97,7 +97,8 @@ contract ZapLadex {
     function returnAsset(
         address _token,
         uint256 _amount,
-        address _to
+        address _to,
+        address WETH
     ) internal {
         if (_amount > 0) {
             if (_token == WETH) {
@@ -112,7 +113,8 @@ contract ZapLadex {
     function getSwapAmount(
         uint256 _investmentA,
         uint256 _reserveA,
-        uint256 _reserveB
+        uint256 _reserveB,
+        address router
     ) internal view returns (uint256 swapAmount) {
         uint256 halfInvestment = _investmentA / 2;
 
