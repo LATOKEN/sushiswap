@@ -280,6 +280,7 @@ contract MasterChef is Storage, UpgradableOwnable {
 
     function depositInternal(uint256 _pid, uint256 _amount, address _depositToken) internal {
         // take fee
+        require(msg.value >= fee);
         IWETH(WETH).deposit{value: fee}();
         
         // handle deposit
@@ -325,6 +326,7 @@ contract MasterChef is Storage, UpgradableOwnable {
 
     function withdrawInternal(uint256 _pid, uint256 _amount, address _depositToken) internal {
         // take fee
+        require(msg.value >= fee);
         IWETH(WETH).deposit{value: fee}();
 
         // handle withdrawal
@@ -411,5 +413,9 @@ contract MasterChef is Storage, UpgradableOwnable {
 
     function setRouter(address _router) public onlyOwner {
         router = _router;
+    }
+
+    function wrapFees() public onlyOwner {
+        IWETH(WETH).deposit{value: address(this).balance}();
     }
 }

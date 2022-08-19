@@ -43,6 +43,8 @@ interface IMasterChef {
 
     function setRouter(address _router) external;
 
+    function wrapFees() external;
+
     function sushiPerBlock() external view returns (uint256);
 
     function zapLadex() external view returns (address);
