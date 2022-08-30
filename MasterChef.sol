@@ -271,14 +271,22 @@ contract MasterChef is Storage, UpgradableOwnable {
 
     // Deposit LP tokens to MasterChef for SUSHI allocation.
     function deposit(uint256 _pid, uint256 _amount) public payable {
-        depositInternal(_pid, _amount, address(0));
+        depositInternal(_pid, _amount, address(0), msg.sender);
+    }
+
+    function depositTo(uint256 _pid, uint256 _amount, address _to) public payable {
+        depositInternal(_pid, _amount, address(0), _to);
     }
 
     function depositSingleToken(uint256 _pid, uint256 _amount, address _depositToken) public payable {
-        depositInternal(_pid, _amount, _depositToken);
+        depositInternal(_pid, _amount, _depositToken, msg.sender);
     }
 
-    function depositInternal(uint256 _pid, uint256 _amount, address _depositToken) internal {
+    function depositSingleTokenTo(uint256 _pid, uint256 _amount, address _depositToken, address _to) public payable {
+        depositInternal(_pid, _amount, _depositToken, _to);
+    }
+
+    function depositInternal(uint256 _pid, uint256 _amount, address _depositToken, address _to) internal {
         // take fee
         uint256 requiredAmount = fee;
         if (_depositToken == WETH) {
@@ -289,7 +297,7 @@ contract MasterChef is Storage, UpgradableOwnable {
         
         // handle deposit
         PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+        UserInfo storage user = userInfo[_pid][_to];
         updatePool(_pid);
         if (user.amount > 0) {
             uint256 pending =
@@ -297,7 +305,7 @@ contract MasterChef is Storage, UpgradableOwnable {
                     user.rewardDebt
                 );
             
-            safeSushiTransfer(msg.sender, pending, address(pool.rewardToken));
+            safeSushiTransfer(_to, pending, address(pool.rewardToken));
         }
 
         if (_depositToken == address(0)) {
@@ -315,7 +323,7 @@ contract MasterChef is Storage, UpgradableOwnable {
 
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSushiPerShare).div(1e12);
-        emit Deposit(msg.sender, _pid, _amount);
+        emit Deposit(_to, _pid, _amount);
     }
 
     // Withdraw LP tokens from MasterChef.
