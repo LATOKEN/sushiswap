@@ -29,9 +29,17 @@ interface IMasterChef {
 
     function setZapLadex(address _zapLadex) external;
 
+    function deposit(uint256 _pid, uint256 _amount) external payable;
+
+    function depositTo(uint256 _pid, uint256 _amount, address _to) external payable;
+
     function depositSingleToken(uint256 _pid, uint256 _amount, address _depositToken) external payable;
 
+    function depositSingleTokenTo(uint256 _pid, uint256 _amount, address _depositToken, address _to) external payable;
+
     function claim(uint256 _pid) external;
+
+    function withdraw(uint256 _pid, uint256 _amount) external payable;
 
     function withdrawSingleToken(uint256 _pid, uint256 _amount, address _depositToken) external payable;
 
@@ -73,6 +81,4 @@ interface IMasterChef {
 
     function poolInfo(uint256 pid) external view returns (IMasterChef.PoolInfo memory);
     function totalAllocPoint() external view returns (uint256);
-    function deposit(uint256 _pid, uint256 _amount) external payable;
-    function withdraw(uint256 _pid, uint256 _amount) external payable;
 }
