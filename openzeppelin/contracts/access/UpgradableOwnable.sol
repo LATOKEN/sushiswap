@@ -71,7 +71,7 @@ abstract contract UpgradableOwnable is Context {
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner)
+    function transferUpgradableOwnableOwnership(address newOwner)
         public
         virtual
         onlyOwner
